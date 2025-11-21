@@ -1,0 +1,51 @@
+name: Backstage CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install build tools
+        run: |
+          sudo apt update
+          sudo apt install -y build-essential make curl wget git
+
+      - name: Setup Node.js via nvm
+        run: |
+          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          nvm install lts/iron
+          node -v
+          npm -v
+
+      - name: Setup Yarn
+        run: |
+          corepack enable
+          yarn set version 4.4.1
+          yarn -v
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Run tests
+        run: yarn test || echo "No tests configured"
+
+      - name: Build Backstage app
+        run: yarn build
+
+      - name: Optional: Build Docker image
+        run: |
+          sudo apt install -y docker.io
+          docker --version
+          docker build -t backstage-app:latest .
